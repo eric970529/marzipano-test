@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Marzipano 室內導覽 Demo</title>
+<style>
+  html, body { margin: 0; height: 100%; }
+  #pano { width: 100%; height: 100%; background: #000; }
+  .hotspot { width: 32px; height: 32px; background: rgba(255,0,0,0.7); border-radius: 50%; cursor: pointer; }
+</style>
+<script src="https://www.marzipano.net/demos/vendor/es5-shim.js"></script>
+<script src="https://www.marzipano.net/demos/vendor/eventShim.js"></script>
+<script src="https://www.marzipano.net/demos/vendor/classList.js"></script>
+<script src="https://www.marzipano.net/demos/vendor/requestAnimationFrame.js"></script>
+<script src="https://www.marzipano.net/demos/vendor/screenfull.min.js"></script>
+<script src="https://www.marzipano.net/demos/vendor/bowser.min.js"></script>
+<script src="https://www.marzipano.net/build/marzipano.js"></script>
+</head>
+<body>
+<div id="pano"></div>
+<script>
+// 建立 Viewer
+var viewer = new Marzipano.Viewer(document.getElementById('pano'));
+
+// 場景資料
+var scenes = {
+  "scene1": {
+    image: "scene1.jpg",
+    view: { yaw: 0, pitch: 0, fov: Math.PI/2 },
+    hotspots: [
+      { yaw: 0.5, pitch: 0, target: "scene2" }
+    ]
+  },
+  "scene2": {
+    image: "scene2.jpg",
+    view: { yaw: 0, pitch: 0, fov: Math.PI/2 },
+    hotspots: [
+      { yaw: -0.5, pitch: 0, target: "scene1" }
+    ]
+  }
+};
+
+// 建立場景的函式
+function createScene(id) {
+  var s = scenes[id];
+  var source = Marzipano.ImageUrlSource.fromString(s.image);
+  var geometry = new Marzipano.EquirectGeometry([{ width: 4096 }]);
+  var limiter = Marzipano.util.compose(
+    Marzipano.RectilinearView.limit.traditional(4096, 100*Math.PI/180),
+    Marzipano.RectilinearView.limit.pitch(-Math.PI/2, Math.PI/2)
+  );
+  var view = new Marzipano.RectilinearView(s.view, limiter);
+  var scene = viewer.createScene({ source: source, geometry: geometry, view: view });
+
+  // 加熱點
+  s.hotspots.forEach(function(hs) {
+    var el = document.createElement("div");
+    el.classList.add("hotspot");
+    el.addEventListener("click", function() {
+      switchScene(hs.target);
+    });
+    scene.hotspotContainer().createHotspot(el, { yaw: hs.yaw, pitch: hs.pitch });
+  });
+
+  return scene;
+}
+
+// 建立所有場景
+var sceneObjects = {};
+for (var id in scenes) {
+  sceneObjects[id] = createScene(id);
+}
+
+// 切換場景
+function switchScene(id) {
+  sceneObjects[id].switchTo();
+}
+
+// 啟動第一個場景
+switchScene("scene1");
+
+</script>
+</body>
+</html>
